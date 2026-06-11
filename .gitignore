@@ -478,3 +478,6 @@ FodyWeavers.xsd
 *.sln.iml
 
 .env
+
+.metadata/
+.vscode/
