@@ -26,7 +26,7 @@ CREATE TABLE miji.users (
 -- =============================================================
 CREATE TABLE miji.links (
     id            BIGSERIAL    PRIMARY KEY,
-    owner_id      BIGINT       NOT NULL REFERENCES users (id),
+    owner_id      BIGINT       NOT NULL REFERENCES miji.users (id),
     slug          VARCHAR(100)  NOT NULL,
     original_url  TEXT         NOT NULL,
     created_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
@@ -42,7 +42,7 @@ CREATE TABLE miji.links (
 -- =============================================================
 CREATE TABLE miji.visits (
     id          BIGSERIAL   PRIMARY KEY,
-    link_id     BIGINT      NOT NULL REFERENCES links (id),
+    link_id     BIGINT      NOT NULL REFERENCES miji.links (id),
     visited_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     ip_address  INET,
     user_agent  TEXT,
@@ -54,20 +54,20 @@ CREATE TABLE miji.visits (
 -- =============================================================
 
 -- Основной путь редиректа: поиск по slug
-CREATE INDEX miji.idx_links_slug ON links (slug);
+CREATE INDEX idx_links_slug ON miji.links (slug);
 
 -- Фоновая очистка истёкших ссылок
-CREATE INDEX miji.idx_links_expires_at ON links (expires_at)
+CREATE INDEX idx_links_expires_at ON miji.links (expires_at)
     WHERE expires_at IS NOT NULL;
 
 -- Список ссылок конкретного пользователя
-CREATE INDEX miji.idx_links_owner_id ON links (owner_id);
+CREATE INDEX idx_links_owner_id ON miji.links (owner_id);
 
 -- Аналитика: переходы по ссылке за период
-CREATE INDEX miji.idx_visits_link_id_visited_at ON visits (link_id, visited_at DESC);
+CREATE INDEX idx_visits_link_id_visited_at ON miji.visits (link_id, visited_at DESC);
 
 -- Топ источников трафика
-CREATE INDEX miji.idx_visits_referer ON visits (link_id, referer)
+CREATE INDEX idx_visits_referer ON miji.visits (link_id, referer)
     WHERE referer IS NOT NULL;
 
 -- =============================================================
@@ -82,22 +82,22 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER users_set_updated_at
-    BEFORE UPDATE ON users
+    BEFORE UPDATE ON miji.users
     FOR EACH ROW
     EXECUTE FUNCTION set_updated_at();
 
 -- =============================================================
 -- COMMENTS
 -- =============================================================
-COMMENT ON TABLE  users                  IS 'Пользователи сервиса';
-COMMENT ON COLUMN users.role             IS 'user | admin';
-COMMENT ON COLUMN users.is_active        IS 'false = пользователь заблокирован, сессии инвалидируются';
+COMMENT ON TABLE  miji.users                  IS 'Пользователи сервиса';
+COMMENT ON COLUMN miji.users.role             IS 'user | admin';
+COMMENT ON COLUMN miji.users.is_active        IS 'false = пользователь заблокирован, сессии инвалидируются';
 
-COMMENT ON TABLE  links                  IS 'Сокращённые ссылки';
-COMMENT ON COLUMN links.slug             IS 'Короткий код, base62, 3–20 символов';
-COMMENT ON COLUMN links.expires_at       IS 'NULL = бессрочно';
-COMMENT ON COLUMN links.is_active        IS 'false = soft-delete, редирект возвращает 404';
-COMMENT ON COLUMN links.visit_count      IS 'Денормализованный счётчик, обновляется Kafka-consumer';
+COMMENT ON TABLE  miji.links                  IS 'Сокращённые ссылки';
+COMMENT ON COLUMN miji.links.slug             IS 'Короткий код, base62, 3–20 символов';
+COMMENT ON COLUMN miji.links.expires_at       IS 'NULL = бессрочно';
+COMMENT ON COLUMN miji.links.is_active        IS 'false = soft-delete, редирект возвращает 404';
+COMMENT ON COLUMN miji.links.visit_count      IS 'Денормализованный счётчик, обновляется Kafka-consumer';
 
-COMMENT ON TABLE  visits                 IS 'Лог переходов, пишется Kafka-consumer асинхронно';
-COMMENT ON COLUMN visits.visited_at      IS 'Фиксируется в producer до отправки в Kafka';
+COMMENT ON TABLE  miji.visits                 IS 'Лог переходов, пишется Kafka-consumer асинхронно';
+COMMENT ON COLUMN miji.visits.visited_at      IS 'Фиксируется в producer до отправки в Kafka';

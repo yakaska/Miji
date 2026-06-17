@@ -21,7 +21,7 @@ env-cleanup:
 	docker compose down
 
 migrate-create:
-	@if [-z "$(seq)"]; then \
+	@if [ -z "$(seq)" ]; then \
 		echo "No var seq. Ex: make migrate-create seq=init"; \
 		exit 1; \
 	fi; \
@@ -33,7 +33,7 @@ migrate-create:
 	  -seq "$(seq)"
 
 migrate:
-	@if [-z "$(action)"]; then \
+	@if [ -z "$(action)" ]; then \
 		echo "No var action. Ex: make migrate-create action=up 1"; \
 		exit 1; \
 	fi; \
@@ -42,3 +42,9 @@ migrate:
 		-path /migrations \
 		-database postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@miji-postgres:${POSTGRES_PORT}/${POSTGRES_DB}?sslmode=disable \
 		$(action)
+
+app-run:
+	@export LOGGER_FOLDER=${PROJECT_ROOT}/out/logs && \
+	export POSTGRES_HOST=localhost && \
+	go mod tidy && \
+	go run cmd/miji/main.go
