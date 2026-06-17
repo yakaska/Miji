@@ -1,0 +1,20 @@
+package logger
+
+import (
+	"fmt"
+
+	"github.com/kelseyhightower/envconfig"
+)
+
+type Config struct {
+	Level  string `envconfig:"LEVEL" required:"true"`
+	Folder string `envconfig:"FOLDER" required:"true"`
+}
+
+func NewLoggerConfig() (*Config, error) {
+	var config Config
+	if err := envconfig.Process("LOGGER", &config); err != nil {
+		return nil, fmt.Errorf("process env config: %w", err)
+	}
+	return &config, nil
+}
