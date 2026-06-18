@@ -1,4 +1,4 @@
-package links
+package link
 
 import (
 	"Miji/internal/core/db"
@@ -16,6 +16,22 @@ func NewPostgresRepository(pool db.Pool) *PostgresRepository {
 	return &PostgresRepository{
 		pool: pool,
 	}
+}
+
+func (r *PostgresRepository) ExistsBySlug(ctx context.Context, slug string) (bool, error) {
+	ctx, cancel := context.WithTimeout(ctx, r.pool.OpTimeout())
+	defer cancel()
+
+	var exists bool
+	err := r.pool.QueryRow(ctx,
+		`SELECT EXISTS(SELECT 1 FROM miji.links WHERE slug = $1)`,
+		slug,
+	).Scan(&exists)
+	if err != nil {
+		return false, fmt.Errorf("exists by slug: %w", err)
+	}
+
+	return exists, nil
 }
 
 func (r *PostgresRepository) Create(ctx context.Context, link domain.Link) (domain.Link, error) {

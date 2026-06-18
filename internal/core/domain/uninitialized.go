@@ -1,3 +1,6 @@
 package domain
 
-var UninitializedID = -1
+var (
+	UninitializedID   = -1
+	UninitializedSlug = ""
+)

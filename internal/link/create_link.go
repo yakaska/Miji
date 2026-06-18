@@ -1,4 +1,4 @@
-package links
+package link
 
 import (
 	"Miji/internal/core/domain"
@@ -11,8 +11,8 @@ import (
 )
 
 type CreateLinkRequest struct {
-	Slug        string `json:"slug"`
-	OriginalURL string `json:"originalURL"`
+	Slug        *string `json:"slug"`
+	OriginalURL string  `json:"originalURL"`
 }
 
 func (r CreateLinkRequest) Valid(ctx context.Context) map[string]string {
@@ -24,8 +24,12 @@ func (r CreateLinkRequest) Valid(ctx context.Context) map[string]string {
 		problems["originalURL"] = "originalURL must be a valid URL"
 	}
 
-	if r.Slug != "" && len(r.Slug) > 120 {
-		problems["slug"] = "slug must be at most 120 characters"
+	if r.Slug != nil {
+		if *r.Slug == "" {
+			problems["slug"] = "slug must not be empty"
+		} else if len(*r.Slug) > 120 {
+			problems["slug"] = "slug must be at most 120 characters"
+		}
 	}
 
 	return problems
@@ -54,11 +58,15 @@ func (h *HTTPHandler) CreateLink(w http.ResponseWriter, r *http.Request) {
 }
 
 func domainFromDTO(req CreateLinkRequest) domain.Link {
-	return domain.Link{
+	dl := domain.Link{
 		ID:          domain.UninitializedID,
-		OwnerID:     0,
-		Slug:        req.Slug,
+		OwnerID:     2,
+		Slug:        domain.UninitializedSlug,
 		OriginalURL: req.OriginalURL,
 		ExpiresAt:   nil,
 	}
+	if req.Slug != nil {
+		dl.Slug = *req.Slug
+	}
+	return dl
 }

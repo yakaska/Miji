@@ -1,4 +1,4 @@
-package links
+package link
 
 type HTTPHandler struct {
 	service *Service

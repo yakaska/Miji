@@ -3,6 +3,9 @@ package db
 import (
 	"context"
 	"fmt"
+	"net"
+	"net/url"
+	"strconv"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -24,16 +27,17 @@ type ConnectionPool struct {
 }
 
 func NewConnectionPool(ctx context.Context, config *Config) (*ConnectionPool, error) {
-	connString := fmt.Sprintf(
-		"postgres://%s:%s@%s:%d/%s?sslmode=disable",
-		config.User,
-		config.Password,
-		config.Host,
-		config.Port,
-		config.Database,
-	)
+	u := &url.URL{
+		Scheme: "postgres",
+		User:   url.UserPassword(config.User, config.Password),
+		Host:   net.JoinHostPort(config.Host, strconv.Itoa(config.Port)),
+		Path:   config.Database,
+	}
+	q := u.Query()
+	q.Set("sslmode", "disable")
+	u.RawQuery = q.Encode()
 
-	pgxConfig, err := pgxpool.ParseConfig(connString)
+	pgxConfig, err := pgxpool.ParseConfig(u.String())
 	if err != nil {
 		return nil, fmt.Errorf("parse pgx config: %w", err)
 	}

@@ -5,7 +5,8 @@ import (
 	"Miji/internal/core/logger"
 	"Miji/internal/core/middleware"
 	"Miji/internal/core/server"
-	"Miji/internal/links"
+	"Miji/internal/link"
+	"Miji/internal/link/slug"
 	"context"
 	"fmt"
 	"io"
@@ -41,12 +42,15 @@ func run(ctx context.Context, getenv func(string) string, stderr io.Writer) erro
 
 	log.Debug("Starting Miji - Url Shortener")
 
-	linksHandler := links.NewHTTPHandler(
-		links.NewService(links.NewPostgresRepository(dbPool)),
+	linkHandler := link.NewHTTPHandler(
+		link.NewService(
+			link.NewPostgresRepository(dbPool),
+			slug.NewBase62SlugGenerator(6),
+		),
 	)
 
 	mux := http.NewServeMux()
-	server.AddRoutes(mux, linksHandler)
+	mux.HandleFunc("POST /api/links", linkHandler.CreateLink)
 
 	srv := server.NewServer(
 		server.NewConfigMust(),
